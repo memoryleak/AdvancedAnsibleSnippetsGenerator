@@ -1,0 +1,11 @@
+- name: ${1:{{ ansible_filter(module_doc.short_description) }}}
+  {{ module | trim }}:
+  {%- if module_doc.options is defined -%}
+  {%- for option_name, option_data in module_doc.options.items() %}
+    {{ option_name }}: {% if option_data.description is defined %}{{ ansible_option_description(loop.index + 1, option_data)}}{% endif %}
+  {%- endfor %}
+  {%- endif %}
+  tags:
+{%- for tag_name in module.split('.') %}
+    - {{ tag_name }}
+{%- endfor %}
