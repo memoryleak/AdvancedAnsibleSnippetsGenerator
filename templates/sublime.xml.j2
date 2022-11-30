@@ -2,5 +2,5 @@
   <content><![CDATA[{{ module_snippet }}]]></content>
   <tabTrigger>{{ module | trim }}</tabTrigger>
   <scope>source.yaml,source.ansible</scope>
-  <description>{{ ansible_filter(module_description) | striptags | trim }}</description>
+  <description>{{ ansible_filter(module_description) | striptags | escape | trim }}</description>
 </snippet>
