@@ -2,14 +2,13 @@
 .DEFAULT: build
 
 clean:
-	#rm -rf build/
+	rm -rf build/
 	mkdir -p build/packages
 	mkdir -p build/sublime
 	mkdir -p build/yaml
 
 build: clean
-	pipenv install
-	pipenv run python3 main.py
+	python3 main.py
 
 package:
 	cp extras/* build/sublime/
