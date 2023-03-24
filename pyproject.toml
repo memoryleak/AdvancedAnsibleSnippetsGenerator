@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "AdvancedAnsibleSnippetsGenerator"
+version = "0.1.0"
+description = "Generate Ansible snippets"
+authors = ["Haydar Ciftci <haydar.ciftci@gmail.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+Jinja2 = "^3.1.2"
+ansible = "^7.3.0"
+coverage = "^7.2.2"
+tqdm = "^4.65.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

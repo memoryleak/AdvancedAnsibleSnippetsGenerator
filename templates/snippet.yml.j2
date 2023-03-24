@@ -6,6 +6,6 @@
   {%- endfor %}
   {%- endif %}
   tags:
-{%- for tag_name in module.split('.') %}
+{%- for tag_name in ansible_tags(module) %}
     - {{ tag_name }}
 {%- endfor %}

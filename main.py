@@ -5,8 +5,9 @@
 from __future__ import print_function, unicode_literals
 
 import os
-
+from tqdm import tqdm
 from ansible.cli.doc import DocCLI
+from ansible.errors import AnsibleParserError
 from ansible.plugins.loader import fragment_loader
 from ansible.plugins.loader import module_loader
 from ansible.utils import plugin_docs
@@ -29,6 +30,7 @@ PATH_BUILD = 'build'
 PATH_YAML = os.path.join(PATH_BUILD, 'yaml')
 PATH_SUBLIME = os.path.join(PATH_BUILD, 'sublime')
 PATH_PACKAGES = os.path.join(PATH_BUILD, 'packages')
+PATH_EXTRAS = os.path.join('extras')
 
 
 def get_module_list():
@@ -59,6 +61,15 @@ def ansible_filter(text):
     return text
 
 
+def ansible_tags(module):
+    tags = module.split(".")
+
+    if tags[0] == 'ansible':
+        return tags[-1:]
+
+    return tags
+
+
 # Option description filter for jinja2 template
 def ansible_option_description(index, description):
     description = ansible_filter(description['description'])
@@ -71,7 +82,8 @@ def create_yaml(module, doc):
         module_doc=doc,
         module=module,
         ansible_option_description=ansible_option_description,
-        ansible_filter=ansible_filter
+        ansible_filter=ansible_filter,
+        ansible_tags=ansible_tags
     )
     with open(snippet_yaml_path, 'w') as snippet_yaml_file:
         snippet_yaml_file.write(snippet_rendered)
@@ -92,7 +104,7 @@ def create_sublime_snippet(module, description, snippet):
 
 
 def main():
-    for module in get_module_list():
+    for module in tqdm(get_module_list()):
         filename = module_loader.find_plugin(module, mod_type='.py')
         if filename is None:
             continue
@@ -102,8 +114,20 @@ def main():
             continue
 
         get_docstring_args = (filename, fragment_loader)
-        doc = plugin_docs.get_docstring(*get_docstring_args)[0]
+        try:
+            doc = plugin_docs.get_docstring(*get_docstring_args)[0]
+        except AnsibleParserError as e:
+            print("Error getting documentation for '{}'".format(module))
+            continue
         create_yaml(module, doc)
+
+    extras = [f for f in os.listdir(PATH_EXTRAS) if os.path.isfile(os.path.join(PATH_EXTRAS, f))]
+    for extra in extras:
+        module = extra.split(".")[0]
+        with open(os.path.join(PATH_EXTRAS, extra), mode='r') as file:
+            snippet = file.read()
+
+        create_sublime_snippet(module, module, snippet)
 
 
 if __name__ == '__main__':
