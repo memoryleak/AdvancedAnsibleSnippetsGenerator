@@ -23,12 +23,13 @@ env = Environment(
 tpl_snippet = env.get_template("snippet.yml.j2")
 tpl_sublime = env.get_template("sublime.xml.j2")
 tpl_code = env.get_template("code.json.j2")
-tpl_code_snippet = env.get_template("code-merged.json.j2")
+tpl_code_merged = env.get_template("code-merged.json.j2")
 doc_cli = DocCLI(['ansible snippet generator'])
 
 PATH_BUILD = 'build'
 PATH_YAML = os.path.join(PATH_BUILD, 'yaml')
 PATH_SUBLIME = os.path.join(PATH_BUILD, 'sublime')
+PATH_CODE = os.path.join(PATH_BUILD, 'code')
 PATH_PACKAGES = os.path.join(PATH_BUILD, 'packages')
 PATH_EXTRAS = os.path.join('extras')
 
@@ -103,35 +104,82 @@ def create_sublime_snippet(module, description, snippet):
         snippet_file.write(snippet_rendered)
 
 
+def create_code_snippet(module, description, snippet):
+    snippet_code_path = os.path.join(PATH_CODE, module + ".json")
+    snippet_rendered = tpl_code.render(
+        module_snippet=snippet,
+        module=module,
+        module_description=description,
+        ansible_filter=ansible_filter
+    )
+
+    with open(snippet_code_path, 'w') as snippet_file:
+        snippet_file.write(snippet_rendered)
+
+
+def create_code_merged(snippets):
+    snippet_rendered = tpl_code_merged.render(
+        snippets=snippets
+    )
+
+    with open(os.path.join(PATH_CODE, 'ansible.json'), 'w') as snippet_file:
+        snippet_file.write(snippet_rendered)
+
+
 def main():
-    for module in tqdm(get_module_list()):
-        filename = module_loader.find_plugin(module, mod_type='.py')
-        if filename is None:
-            continue
-        if filename.endswith(".ps1"):
-            continue
-        if os.path.isdir(filename):
-            continue
+    #parse_ansible_modules()
 
-        get_docstring_args = (filename, fragment_loader)
-        try:
-            doc = plugin_docs.get_docstring(*get_docstring_args)[0]
-        except AnsibleParserError as e:
-            print("Error getting documentation for '{}'".format(module))
-            continue
-        create_yaml(module, doc)
+    yaml_snippets = [os.path.join(PATH_EXTRAS, f) for f in os.listdir(PATH_EXTRAS) if
+                     os.path.isfile(os.path.join(PATH_EXTRAS, f))]
+    yaml_snippets.extend(
+        [os.path.join(PATH_YAML, f) for f in os.listdir(PATH_YAML) if os.path.isfile(os.path.join(PATH_YAML, f))])
 
-    extras = [f for f in os.listdir(PATH_EXTRAS) if os.path.isfile(os.path.join(PATH_EXTRAS, f))]
-    for extra in extras:
-        module = extra.split(".")[0]
-        with open(os.path.join(PATH_EXTRAS, extra), mode='r') as file:
-            snippet = file.read()
+    for module in tqdm(yaml_snippets, desc="Editor Snippets"):
+        module_name = os.path.basename(module).split('/')[-1]
+        module_name = '.'.join(module_name.split('.')[0:-1])
 
-        create_sublime_snippet(module, module, snippet)
+        with open(module, 'r') as yaml_file:
+            content = yaml_file.readlines()
+            create_sublime_snippet(module_name, module_name, content)
+            create_code_snippet(module_name, module_name, content)
+
+    code_snippets = [os.path.join(PATH_CODE, f) for f in os.listdir(PATH_CODE) if
+                     os.path.isfile(os.path.join(PATH_CODE, f))]
+
+    snippets = []
+
+    for module in tqdm(code_snippets, desc="Merge Code Snippets"):
+        with open(module, 'r') as code_file:
+            content = code_file.readlines()
+            snippets.append(content)
+
+    create_code_merged(snippets)
+
+
+def parse_ansible_modules():
+    with tqdm(get_module_list(), desc="Ansible YAML Snippets") as modules:
+        for module in modules:
+            filename = module_loader.find_plugin(module, mod_type='.py')
+            if filename is None:
+                continue
+            if filename.endswith(".ps1"):
+                continue
+            if os.path.isdir(filename):
+                continue
+
+            get_docstring_args = (filename, fragment_loader)
+            try:
+                doc = plugin_docs.get_docstring(*get_docstring_args)[0]
+            except AnsibleParserError as e:
+                print("Error getting documentation for '{}'".format(module))
+                continue
+
+            create_yaml(module, doc)
 
 
 if __name__ == '__main__':
     os.makedirs(PATH_YAML, exist_ok=True)
     os.makedirs(PATH_SUBLIME, exist_ok=True)
+    os.makedirs(PATH_CODE, exist_ok=True)
     os.makedirs(PATH_PACKAGES, exist_ok=True)
     main()

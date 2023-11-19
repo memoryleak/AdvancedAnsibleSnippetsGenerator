@@ -1,5 +1,5 @@
 {
-	{% for snippet in snippets %}
-	{{ snippet }}{% if not loop.last %},{% endif %}
-	{% endfor %}
+	{% for snippet in snippets  -%}
+	{{ snippet | trim }}{% if not loop.last %},{% endif %}
+	{%- endfor %}
 }

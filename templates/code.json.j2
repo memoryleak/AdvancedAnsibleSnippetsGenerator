@@ -2,9 +2,7 @@
   "scope": "yaml,ansible",
   "prefix": ["{{ module }}"],
   "body": [
-{%- for module_snippet_line in module_snippet -%}
-    "{{ module_snippet_line }}"{% if not loop.last %},{% endif %}
-{% endfor -%}
+    modules_list
   ],
   "description": "{{ ansible_filter(module_description) }}"
   }

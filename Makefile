@@ -8,7 +8,8 @@ clean:
 	mkdir -p build/yaml
 
 build: clean
-	python3 main.py
+	poetry install
+	poetry run python3 main.py
 
 package:
 	cp extras/* build/sublime/
